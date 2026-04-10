@@ -691,10 +691,10 @@ const SCENARIOS = {
   r1s1: {
     id:'r1s1', round:1, type:'slider',
     showCost:false, showCompetitors:false,
-    lens:{lbl:'BRAND INSTINCT', desc:'No cost. No competitors. Price this based entirely on who VELD is and who Casey is.'},
+    lens:{lbl:'BRAND INSTINCT', desc:"No competitors. No cost. Use Casey's spending history and what she knows about Gore-Tex Pro to anchor your price."},
     category:'Hardshell Jacket',
     productName:'VoidShell Pro Jacket',
-    description:"VELD's first hardshell entry. No market data available. Price this based on the product story and your understanding of VELD's position.",
+    description:"VELD's first hardshell entry. No market data shown — price this based on VELD's positioning and what you know about what Casey owns, what she's spent, and what she'd pay for a genuine step up.",
     features:['3-layer Gore-Tex Pro membrane','Fully seam-sealed construction','Helmet-compatible StormHood','Two chest pockets + one internal','Underarm pit-zip ventilation','Reconfigurable powder skirt','560g / 19.8oz','100% recycled face fabric'],
     cost:148, sliderMin:150, sliderMax:900, defaultPrice:380,
     competitors:[],
@@ -702,7 +702,7 @@ const SCENARIOS = {
     getMarginScore:(p)=>{ const m=(p-148)/p; if(m>=0.65&&m<=0.78)return 33; if(m>=0.55)return 22; if(m>0.78)return 18; return 8; },
     getRevenueScore:(p)=>{ if(p>=450&&p<=599)return 33; if(p>=380&&p<450)return 20; if(p>599&&p<=699)return 22; return 8; },
     getBrandScore:(p)=>{ if(p>=450&&p<=599)return 34; if(p>=350&&p<450)return 14; if(p>599&&p<=699)return 20; if(p>699)return 10; return 6; },
-    learning:(p)=>`Market reveal: RIDGE Summit Shell $549 · APEX ProShell GTX Pro $749.\n\nGore-Tex Pro commands a consumer price expectation of $450+. At $450–$599, VELD establishes hardshell credibility in the space below RIDGE — a smart entry position for a brand without established shell heritage. Pricing below $350 undercuts VELD's premium tier and leaves significant margin uncaptured. You achieved ${((p-148)/p*100).toFixed(1)}% gross margin at $${p}.`,
+    learning:(p)=>`Market reveal: RIDGE Summit Shell $549 · APEX ProShell GTX Pro $749.\n\nCasey's current shell cost $349 for a 2.5-layer product three years ago. A Gore-Tex Pro hardshell from a brand she trusts is a clear step up — and at $450–$599, VELD prices above her previous purchase while staying meaningfully below ultra-premium. That's the zone where the upgrade story is credible and the brand relationship is earned. Pricing below $380 undercuts the technology signal. Above $700 asks for APEX's brand equity, which VELD hasn't built yet. You achieved ${((p-148)/p*100).toFixed(1)}% gross margin at $${p}.`,
     aiContext:(p)=>`A junior merchant at VELD (premium technical outdoor) priced a 3-layer Gore-Tex Pro hardshell (560g, seam-sealed, VELD's first hardshell) at $${p} with no competitor data shown. Post-reveal: RIDGE $549, APEX $749. Cost is $148.`
   },
 
@@ -997,12 +997,12 @@ function renderSlider(sc, body) {
     rightTopHtml=`<div class="market-map"><div class="market-map-title">Competitive Guardrails</div>${rows}</div>`;
   } else {
     rightTopHtml=`<div class="brand-context-card">
-      <div class="brand-context-title">◎ Who You're Pricing For</div>
-      <div class="brand-context-item"><strong>VELD</strong> — Premium Technical Outdoor. Between APEX (ultra-premium) and RIDGE (heritage).</div>
-      <div class="brand-context-item">Casey, 34 · Denver · UX Designer · $2,400/yr gear spend</div>
-      <div class="brand-context-item">Researches 6 weeks before purchase. Buys at specialty independents.</div>
-      <div class="brand-context-item">Considers $300+ a <strong>"relationship purchase"</strong> — brand has to earn it.</div>
-      <div class="brand-context-item"><strong>Has never bought VELD on markdown.</strong> She doesn't need to.</div>
+      <div class="brand-context-title">◎ Price This For Casey</div>
+      <div class="brand-context-item"><strong>What's in her closet right now:</strong> A 2.5-layer waterproof shell she bought at REI three years ago for $349. It's fine. She knows it's not Gore-Tex Pro.</div>
+      <div class="brand-context-item"><strong>What she knows about Gore-Tex Pro:</strong> She's read the reviews. She knows it's a step up in breathability and durability. She hasn't owned it yet — but she understands why it costs more.</div>
+      <div class="brand-context-item"><strong>Her highest single gear spend to date:</strong> $520 on a trail running kit last spring — shoes plus hydration vest. She didn't hesitate once she decided the brand was right.</div>
+      <div class="brand-context-item"><strong>Her price logic:</strong> Anything over $300 needs to earn it. Over $400, she needs to believe the brand is worth the premium — not just the product.</div>
+      <div class="brand-context-item"><strong>She's been thinking about this purchase for six weeks.</strong> She'll pay full price if the story holds up.</div>
     </div>`;
   }
 
