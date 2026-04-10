@@ -1,0 +1,1316 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PRICE POINT — Merchandising Simulation</title>
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,700&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #080C0E;
+      --bg-elevated: #0F1517;
+      --bg-card: #161D20;
+      --border: #1E282C;
+      --border-light: #243035;
+      --text: #E8E4DC;
+      --text-muted: #6B7A80;
+      --text-dim: #323E44;
+      --accent: #D4831A;
+      --accent-glow: rgba(212,131,26,0.10);
+      --cool: #4A7FA0;
+      --success: #3D9970;
+      --warning: #C8920A;
+      --danger: #B84040;
+      --font-display: 'Bebas Neue', sans-serif;
+      --font-body: 'DM Sans', sans-serif;
+      --font-mono: 'DM Mono', monospace;
+    }
+
+    html, body { height: 100%; background: var(--bg); color: var(--text); font-family: var(--font-body); font-size: 15px; line-height: 1.5; overflow: hidden; }
+
+    body::before {
+      content: '';
+      position: fixed; inset: 0;
+      background-image: repeating-linear-gradient(0deg, transparent, transparent 39px, rgba(255,255,255,0.016) 40px),
+                        repeating-linear-gradient(90deg, transparent, transparent 39px, rgba(255,255,255,0.01) 40px);
+      pointer-events: none; z-index: 0;
+    }
+
+    .screen {
+      position: fixed; inset: 0;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      padding: 20px;
+      opacity: 0; pointer-events: none;
+      transition: opacity 0.35s ease;
+      z-index: 1; overflow-y: auto;
+    }
+    .screen.active { opacity: 1; pointer-events: all; }
+
+    .eyebrow { font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--text-muted); }
+    .eyebrow.accent { color: var(--accent); }
+
+    /* BUTTONS */
+    .btn { font-family: var(--font-display); letter-spacing: 0.1em; font-size: 17px; padding: 13px 32px; border: none; cursor: pointer; transition: all 0.18s; }
+    .btn-primary { background: var(--accent); color: #060A0C; }
+    .btn-primary:hover { background: #E8951F; transform: translateY(-1px); }
+    .btn-secondary { background: transparent; color: var(--text); border: 1px solid var(--border-light); font-size: 14px; padding: 10px 22px; }
+    .btn-secondary:hover { border-color: var(--accent); color: var(--accent); }
+    .btn-hint { background: transparent; color: var(--text-muted); border: 1px solid var(--border); font-family: var(--font-body); font-size: 13px; font-weight: 500; padding: 9px 18px; cursor: pointer; transition: all 0.18s; letter-spacing: 0.04em; }
+    .btn-hint:hover { border-color: var(--cool); color: var(--cool); }
+    .btn-hint:disabled { opacity: 0.35; cursor: not-allowed; }
+
+    /* TOGGLE */
+    .toggle-row { display: flex; align-items: center; gap: 12px; cursor: pointer; user-select: none; }
+    .toggle { width: 42px; height: 23px; border: 1px solid var(--border-light); border-radius: 12px; position: relative; transition: all 0.2s; background: transparent; }
+    .toggle.on { background: var(--accent); border-color: var(--accent); }
+    .toggle::after { content: ''; position: absolute; width: 17px; height: 17px; border-radius: 50%; background: var(--text-muted); top: 2px; left: 2px; transition: all 0.2s; }
+    .toggle.on::after { transform: translateX(19px); background: #080C0E; }
+
+    /* ── SPLASH ── */
+    #screen-splash { gap: 28px; text-align: center; }
+    .splash-title { font-family: var(--font-display); font-size: clamp(64px, 10vw, 108px); letter-spacing: 0.06em; line-height: 0.88; }
+    .splash-title span { color: var(--accent); }
+    .splash-sub { color: var(--text-muted); font-size: 13px; max-width: 340px; line-height: 1.7; }
+    .splash-line { width: 32px; height: 1px; background: var(--accent); }
+    .splash-eyebrow { display: flex; align-items: center; gap: 12px; justify-content: center; }
+    .mentor-toggle-group { display: flex; flex-direction: column; align-items: center; gap: 8px; }
+    .mentor-hint-label { font-size: 11px; color: var(--text-dim); max-width: 260px; text-align: center; transition: color 0.2s; }
+
+    /* ── LEARNING OBJECTIVES ── */
+    #screen-objectives { justify-content: flex-start; padding: 44px 24px 72px; overflow-y: auto; }
+    .obj-inner { max-width: 600px; width: 100%; display: flex; flex-direction: column; gap: 0; }
+    .obj-header { padding-bottom: 32px; border-bottom: 1px solid var(--border); margin-bottom: 32px; }
+    .obj-eyebrow { font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.18em; color: var(--accent); text-transform: uppercase; margin-bottom: 14px; }
+    .obj-title { font-family: var(--font-display); font-size: clamp(30px, 5vw, 46px); letter-spacing: 0.04em; line-height: 1.02; margin-bottom: 16px; }
+    .obj-intro { font-size: 13px; color: var(--text-muted); line-height: 1.82; max-width: 520px; }
+    .obj-intro strong { color: var(--text); font-weight: 500; }
+
+    .obj-section { margin-bottom: 32px; }
+    .obj-section-lbl { font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.16em; color: var(--text-muted); text-transform: uppercase; margin-bottom: 14px; padding-bottom: 8px; border-bottom: 1px solid var(--border); }
+
+    /* Learning objective cards */
+    .obj-cards { display: flex; flex-direction: column; gap: 8px; }
+    .obj-card { display: flex; gap: 16px; align-items: flex-start; background: var(--bg-elevated); border: 1px solid var(--border); padding: 14px 16px; }
+    .obj-card-num { font-family: var(--font-display); font-size: 28px; color: var(--accent); line-height: 1; width: 24px; flex-shrink: 0; }
+    .obj-card-body { flex: 1; }
+    .obj-card-title { font-size: 13px; font-weight: 600; color: var(--text); margin-bottom: 4px; }
+    .obj-card-desc { font-size: 12px; color: var(--text-muted); line-height: 1.65; }
+
+    /* Round preview */
+    .round-preview { display: flex; flex-direction: column; gap: 8px; }
+    .round-preview-item { display: flex; gap: 14px; align-items: flex-start; padding: 12px 14px; border: 1px solid var(--border); }
+    .round-preview-item.active-round { border-color: var(--accent); background: var(--accent-glow); }
+    .rp-tag { font-family: var(--font-display); font-size: 11px; letter-spacing: 0.1em; color: var(--accent); width: 64px; flex-shrink: 0; padding-top: 1px; }
+    .round-preview-item:not(.active-round) .rp-tag { color: var(--text-muted); }
+    .rp-name { font-size: 12px; font-weight: 600; color: var(--text); margin-bottom: 3px; }
+    .rp-desc { font-size: 11px; color: var(--text-muted); line-height: 1.55; }
+    .rp-lens { display: inline-block; font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.1em; color: var(--accent); background: var(--accent-glow); border: 1px solid rgba(212,131,26,0.2); padding: 2px 7px; margin-top: 5px; }
+
+    /* Scoring explainer */
+    .scoring-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+    .scoring-cell { background: var(--bg-elevated); border: 1px solid var(--border); padding: 12px 14px; }
+    .scoring-cell-name { font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.12em; color: var(--accent); text-transform: uppercase; margin-bottom: 5px; }
+    .scoring-cell-pts { font-family: var(--font-display); font-size: 22px; color: var(--text); line-height: 1; margin-bottom: 4px; }
+    .scoring-cell-desc { font-size: 11px; color: var(--text-muted); line-height: 1.5; }
+
+    /* Expectations box */
+    .expectations-list { display: flex; flex-direction: column; gap: 8px; }
+    .exp-item { display: flex; gap: 10px; align-items: flex-start; font-size: 12px; color: var(--text-muted); line-height: 1.6; }
+    .exp-item::before { content: '→'; color: var(--accent); font-family: var(--font-mono); flex-shrink: 0; margin-top: 1px; }
+    .exp-item strong { color: var(--text); font-weight: 500; }
+
+    .obj-cta { padding-top: 36px; border-top: 1px solid var(--border); margin-top: 4px; display: flex; flex-direction: column; align-items: flex-start; gap: 12px; }
+    .obj-cta-note { font-size: 12px; color: var(--text-dim); }
+
+    /* ── BRAND BRIEF ── */
+    #screen-brand-brief { justify-content: flex-start; padding: 40px 24px 72px; overflow-y: auto; }
+    .brief-inner { max-width: 580px; width: 100%; display: flex; flex-direction: column; }
+    .brief-section { padding: 40px 0; border-bottom: 1px solid var(--border); }
+    .brief-rule { width: 36px; height: 2px; background: var(--accent); margin-bottom: 18px; }
+    .brief-section-lbl { font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.18em; color: var(--accent); margin-bottom: 14px; text-transform: uppercase; }
+    .brief-headline { font-family: var(--font-display); font-size: clamp(26px, 4.5vw, 40px); letter-spacing: 0.04em; line-height: 1.04; margin-bottom: 18px; }
+    .brief-prose { font-size: 13px; color: var(--text-muted); line-height: 1.85; }
+    .brief-prose strong { color: var(--text); font-weight: 500; }
+    .brief-prose em { font-style: italic; }
+    .brief-prose + .brief-prose { margin-top: 12px; }
+    .brief-callout { border-left: 2px solid var(--accent); padding: 14px 18px; background: var(--accent-glow); margin-top: 18px; }
+    .brief-callout p { font-size: 13px; color: var(--text); line-height: 1.75; font-style: italic; }
+    .brief-callout .attr { font-size: 11px; color: var(--text-muted); font-style: normal; margin-top: 6px; display: block; }
+    .brief-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin: 18px 0; }
+    .brief-stat { background: var(--bg-elevated); border: 1px solid var(--border); padding: 12px; text-align: center; }
+    .brief-stat-val { font-family: var(--font-display); font-size: 18px; color: var(--accent); line-height: 1; margin-bottom: 4px; }
+    .brief-stat-lbl { font-family: var(--font-mono); font-size: 9px; color: var(--text-dim); letter-spacing: 0.1em; text-transform: uppercase; }
+    .brief-callout-inline { background: rgba(74,127,160,0.06); border: 1px solid rgba(74,127,160,0.2); padding: 12px 16px; margin-top: 16px; }
+    .brief-callout-inline p { font-size: 12px; color: var(--text-muted); line-height: 1.7; }
+    .brief-callout-inline strong { color: var(--text); }
+    .brand-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin: 16px 0; }
+    .brand-chip { background: var(--bg-elevated); border: 1px solid var(--border); padding: 10px; text-align: center; }
+    .brand-chip.player { border-color: var(--accent); background: var(--accent-glow); }
+    .brand-chip.premium { border-color: rgba(74,127,160,0.4); }
+    .brand-chip.accessible { border-color: var(--border-light); }
+    .brand-chip-name { font-family: var(--font-display); font-size: 16px; letter-spacing: 0.05em; }
+    .brand-chip.player .brand-chip-name { color: var(--accent); }
+    .brand-chip.premium .brand-chip-name { color: var(--cool); }
+    .brand-chip-tier { font-size: 9px; color: var(--text-muted); font-family: var(--font-mono); letter-spacing: 0.07em; margin-top: 2px; }
+    .brand-chip-arrow { font-size: 9px; color: var(--text-dim); font-family: var(--font-mono); margin-top: 3px; }
+    .brief-principles { list-style: none; display: flex; flex-direction: column; gap: 10px; margin-top: 18px; }
+    .brief-principles li { font-family: var(--font-display); font-size: 17px; letter-spacing: 0.04em; color: var(--text-muted); padding-left: 22px; position: relative; }
+    .brief-principles li::before { content: '—'; color: var(--accent); position: absolute; left: 0; }
+    .brief-cta { padding: 44px 0 10px; display: flex; flex-direction: column; align-items: center; gap: 12px; text-align: center; }
+    .brief-cta-note { font-size: 12px; color: var(--text-dim); }
+
+    /* ── ROUND INTRO ── */
+    #screen-round-intro { gap: 18px; text-align: center; }
+    .round-num-display { font-family: var(--font-display); font-size: 130px; line-height: 1; color: var(--text-dim); letter-spacing: 0.02em; }
+    .round-name-display { font-family: var(--font-display); font-size: 34px; letter-spacing: 0.1em; }
+    .round-desc-display { color: var(--text-muted); font-size: 13px; max-width: 340px; line-height: 1.65; }
+
+    /* ── SCENARIO ── */
+    #screen-scenario { justify-content: flex-start; padding: 14px 20px 18px; max-width: 980px; margin: 0 auto; width: 100%; gap: 0; }
+    .sc-header { display: flex; align-items: center; justify-content: space-between; width: 100%; padding-bottom: 12px; border-bottom: 1px solid var(--border); margin-bottom: 12px; flex-shrink: 0; }
+    .sc-header-left { display: flex; flex-direction: column; gap: 6px; }
+    .sc-pips { display: flex; gap: 5px; }
+    .sc-pip { width: 18px; height: 3px; background: var(--text-dim); }
+    .sc-pip.done { background: var(--accent); }
+    .sc-pip.current { background: var(--accent); opacity: 0.45; }
+    .sc-header-right { display: flex; align-items: center; gap: 14px; }
+    .sc-score-box { text-align: right; }
+    .sc-score-val { font-family: var(--font-display); font-size: 30px; letter-spacing: 0.04em; color: var(--accent); line-height: 1; }
+    .mentor-on-badge { display: flex; align-items: center; gap: 6px; padding: 4px 10px; background: rgba(74,127,160,0.1); border: 1px solid var(--cool); font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.1em; color: var(--cool); }
+
+    .lens-bar { display: flex; align-items: center; gap: 10px; width: 100%; padding: 7px 13px; background: rgba(212,131,26,0.05); border: 1px solid rgba(212,131,26,0.16); margin-bottom: 13px; flex-shrink: 0; }
+    .lens-lbl { font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.14em; color: var(--accent); text-transform: uppercase; flex-shrink: 0; }
+    .lens-sep { width: 1px; height: 11px; background: var(--border-light); flex-shrink: 0; }
+    .lens-desc { font-size: 11px; color: var(--text-muted); }
+
+    .sc-body { display: grid; grid-template-columns: 1fr 1.7fr; gap: 16px; width: 100%; flex: 1; min-height: 0; }
+    .sc-body.full-width { grid-template-columns: 1fr; }
+
+    .prod-panel { display: flex; flex-direction: column; gap: 10px; }
+    .cat-badge { display: inline-flex; align-items: center; gap: 5px; padding: 3px 9px; background: var(--bg-elevated); border: 1px solid var(--border); font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.1em; color: var(--text-muted); width: fit-content; }
+    .prod-brand { font-family: var(--font-display); font-size: 13px; color: var(--accent); letter-spacing: 0.14em; }
+    .prod-name { font-family: var(--font-display); font-size: 26px; letter-spacing: 0.04em; line-height: 1.05; }
+    .prod-desc { font-size: 12px; color: var(--text-muted); line-height: 1.65; }
+    .feat-list { list-style: none; display: flex; flex-direction: column; gap: 5px; }
+    .feat-list li { font-size: 11px; color: var(--text); display: flex; gap: 7px; align-items: flex-start; }
+    .feat-list li::before { content: '▸'; color: var(--accent); flex-shrink: 0; }
+    .cost-row { background: var(--bg-elevated); border: 1px solid var(--border); padding: 10px 13px; display: flex; justify-content: space-between; align-items: center; }
+    .cost-lbl { font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.1em; color: var(--text-muted); }
+    .cost-val { font-family: var(--font-display); font-size: 20px; }
+
+    .price-panel { display: flex; flex-direction: column; gap: 12px; }
+    .market-map { background: var(--bg-elevated); border: 1px solid var(--border); padding: 14px; }
+    .market-map-title { font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.12em; color: var(--text-muted); margin-bottom: 12px; text-transform: uppercase; }
+    .comp-row { display: flex; align-items: center; gap: 8px; padding: 7px 0; border-bottom: 1px solid var(--bg-card); }
+    .comp-row:last-child { border-bottom: none; }
+    .comp-tier-tag { font-family: var(--font-mono); font-size: 8px; letter-spacing: 0.08em; padding: 2px 5px; flex-shrink: 0; width: 72px; text-align: center; }
+    .comp-tier-tag.above { background: rgba(74,127,160,0.1); border: 1px solid rgba(74,127,160,0.25); color: var(--cool); }
+    .comp-tier-tag.below { background: rgba(50,62,68,0.4); border: 1px solid var(--border); color: var(--text-dim); }
+    .comp-brand { font-family: var(--font-display); font-size: 14px; letter-spacing: 0.06em; width: 64px; flex-shrink: 0; }
+    .comp-product { font-size: 10px; color: var(--text-dim); font-family: var(--font-mono); flex: 1; }
+    .comp-bar-wrap { width: 60px; height: 2px; background: var(--bg-card); flex-shrink: 0; }
+    .comp-bar-fill { height: 100%; }
+    .comp-bar-fill.above { background: var(--cool); opacity: 0.5; }
+    .comp-bar-fill.below { background: var(--border-light); }
+    .comp-price-val { font-family: var(--font-mono); font-size: 14px; font-weight: 500; width: 48px; text-align: right; flex-shrink: 0; }
+
+    .brand-context-card { background: var(--bg-elevated); border: 1px solid var(--border); padding: 16px; }
+    .brand-context-title { font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.12em; color: var(--accent); text-transform: uppercase; margin-bottom: 12px; }
+    .brand-context-item { font-size: 12px; color: var(--text-muted); padding: 6px 0; border-bottom: 1px solid var(--bg-card); line-height: 1.5; display: flex; gap: 8px; }
+    .brand-context-item:last-child { border-bottom: none; }
+    .brand-context-item::before { content: '◎'; color: var(--text-dim); font-size: 9px; flex-shrink: 0; margin-top: 2px; }
+    .brand-context-item strong { color: var(--text); font-weight: 500; }
+
+    .slider-section { background: var(--bg-elevated); border: 1px solid var(--border); padding: 16px 18px; }
+    .price-display-center { text-align: center; margin-bottom: 14px; }
+    .your-price-lbl { font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.16em; color: var(--text-muted); }
+    .your-price-val { font-family: var(--font-display); font-size: 54px; letter-spacing: 0.02em; color: var(--accent); line-height: 1; transition: color 0.15s; }
+    .margin-lbl { font-family: var(--font-mono); font-size: 11px; color: var(--text-muted); }
+    .slider-wrap { position: relative; padding: 28px 0 16px; }
+    .markers-row { position: absolute; top: 0; left: 0; right: 0; height: 26px; }
+    .marker-item { position: absolute; display: flex; flex-direction: column; align-items: center; transform: translateX(-50%); }
+    .marker-lbl { font-family: var(--font-mono); font-size: 9px; color: var(--text-dim); white-space: nowrap; letter-spacing: 0.05em; }
+    .marker-tick { width: 1px; height: 7px; background: var(--border); }
+    input[type=range] { -webkit-appearance: none; width: 100%; height: 5px; border-radius: 0; outline: none; cursor: pointer; background: var(--bg-card); }
+    input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 20px; height: 20px; border-radius: 50%; background: var(--accent); border: 3px solid var(--bg); box-shadow: 0 0 0 1px var(--accent); cursor: pointer; transition: transform 0.12s; }
+    input[type=range]::-webkit-slider-thumb:hover { transform: scale(1.18); }
+    .slider-bounds { display: flex; justify-content: space-between; margin-top: 5px; }
+    .slider-bound { font-family: var(--font-mono); font-size: 10px; color: var(--text-dim); }
+
+    .sc-footer { display: flex; align-items: center; justify-content: space-between; margin-top: 14px; width: 100%; flex-shrink: 0; }
+    .hint-row { display: flex; align-items: center; gap: 10px; }
+    .hint-cost-note { font-size: 11px; color: var(--text-dim); }
+
+    .elast-wrap { display: flex; flex-direction: column; gap: 14px; max-width: 660px; margin: 0 auto; width: 100%; }
+    .situation-box { border-left: 3px solid var(--warning); padding: 14px 18px; background: rgba(200,146,10,0.06); }
+    .situation-lbl { font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.12em; color: var(--warning); margin-bottom: 7px; text-transform: uppercase; }
+    .situation-text { font-size: 13px; color: var(--text); line-height: 1.75; }
+    .options-list { display: flex; flex-direction: column; gap: 8px; }
+    .option-item { background: var(--bg-elevated); border: 1px solid var(--border); padding: 13px 16px; cursor: pointer; display: flex; gap: 13px; align-items: flex-start; transition: all 0.18s; }
+    .option-item:hover { border-color: var(--accent); background: var(--accent-glow); }
+    .option-item.selected { border-color: var(--accent); background: var(--accent-glow); }
+    .opt-letter { font-family: var(--font-display); font-size: 20px; color: var(--accent); width: 18px; flex-shrink: 0; }
+    .opt-text { font-size: 13px; color: var(--text); line-height: 1.55; }
+
+    .assort-wrap { display: flex; flex-direction: column; gap: 10px; max-width: 700px; margin: 0 auto; width: 100%; }
+    .assort-item { background: var(--bg-elevated); border: 1px solid var(--border); padding: 13px 15px; }
+    .assort-item-top { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px; }
+    .assort-name { font-family: var(--font-display); font-size: 17px; letter-spacing: 0.05em; }
+    .assort-type { font-size: 11px; color: var(--text-muted); }
+    .assort-price-display { font-family: var(--font-display); font-size: 26px; color: var(--accent); line-height: 1; }
+    .assort-margin-display { font-size: 10px; color: var(--text-muted); font-family: var(--font-mono); text-align: right; }
+    .assort-feat { font-size: 11px; color: var(--text-muted); margin-bottom: 5px; }
+    .assort-comps { font-size: 10px; font-family: var(--font-mono); color: var(--text-dim); margin-bottom: 9px; }
+
+    #screen-feedback { gap: 0; max-width: 700px; margin: 0 auto; width: 100%; }
+    .fb-inner { display: flex; flex-direction: column; gap: 16px; width: 100%; max-height: 90vh; overflow-y: auto; padding-right: 4px; }
+    .result-banner { padding: 16px 20px; border-left: 4px solid; }
+    .result-banner.great { border-color: var(--success); background: rgba(61,153,112,0.07); }
+    .result-banner.good { border-color: var(--warning); background: rgba(200,146,10,0.07); }
+    .result-banner.miss { border-color: var(--danger); background: rgba(184,64,64,0.07); }
+    .result-lbl { font-family: var(--font-display); font-size: 26px; letter-spacing: 0.08em; }
+    .result-banner.great .result-lbl { color: var(--success); }
+    .result-banner.good .result-lbl { color: var(--warning); }
+    .result-banner.miss .result-lbl { color: var(--danger); }
+    .result-sub { font-size: 12px; color: var(--text-muted); margin-top: 3px; }
+    .score-break { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+    .score-metric-card { background: var(--bg-card); border: 1px solid var(--border); padding: 13px; text-align: center; }
+    .smc-name { font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.1em; color: var(--text-muted); text-transform: uppercase; margin-bottom: 5px; }
+    .smc-val { font-family: var(--font-display); font-size: 26px; }
+    .smc-val.hi { color: var(--success); }
+    .smc-val.mid { color: var(--warning); }
+    .smc-val.lo { color: var(--danger); }
+    .smc-max { font-size: 10px; color: var(--text-dim); }
+    .takeaway-box { border: 1px solid var(--border); padding: 16px 18px; background: var(--bg-elevated); }
+    .takeaway-lbl { font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.12em; color: var(--accent); text-transform: uppercase; margin-bottom: 8px; }
+    .takeaway-text { font-size: 13px; color: var(--text); line-height: 1.72; white-space: pre-wrap; }
+    .ai-box { border: 1px solid var(--border); padding: 16px 18px; background: var(--bg-card); }
+    .ai-box-lbl { font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.12em; color: var(--cool); text-transform: uppercase; margin-bottom: 8px; display: flex; align-items: center; gap: 8px; }
+    .ai-text { font-size: 13px; color: var(--text-muted); line-height: 1.72; font-style: italic; }
+    .ai-dots { display: flex; gap: 4px; }
+    .ai-dot { width: 4px; height: 4px; border-radius: 50%; background: var(--cool); animation: blink 1.3s infinite; }
+    .ai-dot:nth-child(2) { animation-delay: 0.22s; }
+    .ai-dot:nth-child(3) { animation-delay: 0.44s; }
+    @keyframes blink { 0%,60%,100% { opacity: 0.18; } 30% { opacity: 1; } }
+
+    #screen-round-summary { gap: 24px; max-width: 560px; margin: 0 auto; width: 100%; text-align: center; }
+    .rs-total { font-family: var(--font-display); font-size: 80px; letter-spacing: 0.02em; color: var(--accent); line-height: 1; }
+    .rs-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; width: 100%; }
+    .rs-cell { background: var(--bg-card); border: 1px solid var(--border); padding: 16px; text-align: center; }
+    .rs-cell-val { font-family: var(--font-display); font-size: 38px; color: var(--accent); }
+    .rs-msg { font-size: 13px; color: var(--text-muted); max-width: 380px; line-height: 1.65; }
+
+    #screen-final { gap: 20px; max-width: 580px; margin: 0 auto; width: 100%; text-align: center; }
+    .badge-display { display: inline-block; padding: 7px 22px; border: 2px solid var(--accent); font-family: var(--font-display); font-size: 22px; letter-spacing: 0.14em; color: var(--accent); background: var(--accent-glow); }
+    .final-total { font-family: var(--font-display); font-size: 96px; line-height: 1; color: var(--text); }
+    .final-max { font-family: var(--font-mono); font-size: 12px; color: var(--text-muted); letter-spacing: 0.1em; }
+    .final-rds { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; width: 100%; }
+    .final-rd-cell { background: var(--bg-card); border: 1px solid var(--border); padding: 14px; text-align: center; }
+    .final-rd-lbl { font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.1em; color: var(--text-muted); text-transform: uppercase; margin-bottom: 5px; }
+    .final-rd-val { font-family: var(--font-display); font-size: 30px; }
+    .final-ai-box { background: var(--bg-card); border: 1px solid var(--border); padding: 18px 20px; max-width: 500px; font-size: 13px; color: var(--text-muted); line-height: 1.75; font-style: italic; text-align: left; }
+
+    .hint-overlay { position: fixed; inset: 0; background: rgba(8,12,14,0.87); display: flex; align-items: center; justify-content: center; z-index: 100; opacity: 0; pointer-events: none; transition: opacity 0.28s; }
+    .hint-overlay.visible { opacity: 1; pointer-events: all; }
+    .hint-card { background: var(--bg-card); border: 1px solid var(--cool); padding: 28px 30px; max-width: 460px; width: 100%; }
+    .hint-card-lbl { font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.14em; color: var(--cool); text-transform: uppercase; margin-bottom: 14px; display: flex; align-items: center; gap: 8px; }
+    .hint-card-text { font-size: 14px; line-height: 1.75; color: var(--text); margin-bottom: 18px; min-height: 56px; }
+
+    ::-webkit-scrollbar { width: 4px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: var(--border-light); }
+  </style>
+</head>
+<body>
+
+<!-- ═══════ SPLASH ═══════ -->
+<div id="screen-splash" class="screen active">
+  <div class="splash-eyebrow">
+    <div class="splash-line" style="width:32px;height:1px;background:var(--accent);"></div>
+    <span class="eyebrow accent">Merchandising Simulation</span>
+    <div class="splash-line" style="width:32px;height:1px;background:var(--accent);"></div>
+  </div>
+  <div class="splash-title">PRICE<br><span>POINT</span></div>
+  <p class="splash-sub">A seasonal pricing simulation for the outdoor and sports market. Three rounds. One brand. Real decisions.</p>
+  <div class="mentor-toggle-group">
+    <div class="toggle-row" onclick="toggleMentor()">
+      <div class="toggle" id="mentor-toggle"></div>
+      <span class="eyebrow">Mentor Mode</span>
+    </div>
+    <p class="mentor-hint-label" id="mentor-lbl">Enable hints during play — each one costs 25 points from your score.</p>
+  </div>
+  <button class="btn btn-primary" onclick="startGame()">ENTER SEASON</button>
+  <div style="position:absolute;bottom:18px;left:50%;transform:translateX(-50%);">
+    <span class="eyebrow" style="font-size:9px;">SEASON 01 · VELD OUTERWEAR</span>
+  </div>
+</div>
+
+<!-- ═══════ LEARNING OBJECTIVES ═══════ -->
+<div id="screen-objectives" class="screen">
+  <div class="obj-inner">
+
+    <div class="obj-header">
+      <div class="obj-eyebrow">Before You Begin</div>
+      <div class="obj-title">WHAT YOU'LL LEARN.<br>WHAT TO EXPECT.</div>
+      <p class="obj-intro">Price Point is a <strong>merchandising pricing simulation</strong>. You play as a junior merchant at VELD Outerwear, tasked with pricing new products across three rounds of increasing complexity. Each round introduces a new variable — brand instinct, competitive context, then cost — before putting them all together.</p>
+    </div>
+
+    <!-- Learning objectives -->
+    <div class="obj-section">
+      <div class="obj-section-lbl">What You'll Learn</div>
+      <div class="obj-cards">
+        <div class="obj-card">
+          <div class="obj-card-num">1</div>
+          <div class="obj-card-body">
+            <div class="obj-card-title">Brand tier translates directly to price tier</div>
+            <div class="obj-card-desc">Where a brand lives in the market — premium, heritage, sport — sets consumer price expectations before a single product is considered. Pricing below your tier signals something is wrong with the product, not the price.</div>
+          </div>
+        </div>
+        <div class="obj-card">
+          <div class="obj-card-num">2</div>
+          <div class="obj-card-body">
+            <div class="obj-card-title">Competitive context shapes the decision — but doesn't make it</div>
+            <div class="obj-card-desc">Knowing where your competitors price is critical context. But the right price for VELD is determined by VELD's position, not by reacting to what others charge. Anchoring to competitors is a trap.</div>
+          </div>
+        </div>
+        <div class="obj-card">
+          <div class="obj-card-num">3</div>
+          <div class="obj-card-body">
+            <div class="obj-card-title">Margin and positioning must work together</div>
+            <div class="obj-card-desc">A price that feels right for the brand has to hold up on paper. Great merchants can hold both simultaneously — the emotional logic of the consumer and the financial logic of the business.</div>
+          </div>
+        </div>
+        <div class="obj-card">
+          <div class="obj-card-num">4</div>
+          <div class="obj-card-body">
+            <div class="obj-card-title">Markdowns are a last resort, not a first response</div>
+            <div class="obj-card-desc">Reactive price cuts signal distress, erode brand positioning, and anchor future consumer expectations lower. Understanding when to hold, when to adjust, and when to reframe is a core merchant skill.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Round structure -->
+    <div class="obj-section">
+      <div class="obj-section-lbl">How It's Structured</div>
+      <div class="round-preview">
+        <div class="round-preview-item active-round">
+          <div class="rp-tag">ROUND 1</div>
+          <div>
+            <div class="rp-name">Brand Instinct</div>
+            <div class="rp-desc">Two scenarios. First with no market data at all — price from brand instinct alone. Then with two competitors revealed. Each scenario adds one new layer of information.</div>
+            <div class="rp-lens">PROGRESSIVE COMPLEXITY</div>
+          </div>
+        </div>
+        <div class="round-preview-item">
+          <div class="rp-tag">ROUND 2</div>
+          <div>
+            <div class="rp-name">The Math</div>
+            <div class="rp-desc">Cost is introduced. Does your positioning instinct survive contact with the margin math? Difficulty adapts based on your Round 1 score.</div>
+            <div class="rp-lens">ADAPTIVE DIFFICULTY</div>
+          </div>
+        </div>
+        <div class="round-preview-item">
+          <div class="rp-tag">ROUND 3</div>
+          <div>
+            <div class="rp-name">Full Season</div>
+            <div class="rp-desc">A live-season pressure test — sell-through, competitive moves, markdown decisions — and a final assortment architecture challenge that ties everything together.</div>
+            <div class="rp-lens">SYNTHESIS</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Scoring -->
+    <div class="obj-section">
+      <div class="obj-section-lbl">How You're Scored</div>
+      <div class="scoring-grid">
+        <div class="scoring-cell">
+          <div class="scoring-cell-name">Margin</div>
+          <div class="scoring-cell-pts">33 pts</div>
+          <div class="scoring-cell-desc">Did the price protect gross margin for the business?</div>
+        </div>
+        <div class="scoring-cell">
+          <div class="scoring-cell-name">Revenue</div>
+          <div class="scoring-cell-pts">33 pts</div>
+          <div class="scoring-cell-desc">Is the price positioned to move volume and hit sell-through targets?</div>
+        </div>
+        <div class="scoring-cell">
+          <div class="scoring-cell-name">Brand Equity</div>
+          <div class="scoring-cell-pts">34 pts</div>
+          <div class="scoring-cell-desc">Does the price reinforce VELD's position in the market?</div>
+        </div>
+      </div>
+      <div style="margin-top:10px;font-size:11px;color:var(--text-dim);font-family:var(--font-mono);">600 POINTS TOTAL · HINTS COST 25 PTS EACH · NO TIME PRESSURE</div>
+    </div>
+
+    <!-- What to expect -->
+    <div class="obj-section">
+      <div class="obj-section-lbl">What to Expect</div>
+      <div class="expectations-list">
+        <div class="exp-item"><strong>There is no single right answer</strong> — but there are clearly wrong ones. The scoring reflects the tradeoffs, not a binary pass/fail.</div>
+        <div class="exp-item"><strong>Feedback matters more than the score.</strong> Each decision is followed by a key takeaway and mentor commentary. Read them — that's where the learning happens.</div>
+        <div class="exp-item"><strong>Two competitors appear in each scenario</strong> — one more premium than VELD, one more accessible. They're your guardrails, not your targets.</div>
+        <div class="exp-item"><strong>The simulation takes 20–30 minutes.</strong> It is not resumable, so find a window before you start.</div>
+        <div class="exp-item">If Mentor Mode is on, you can <strong>request a hint at any time</strong> — but each one costs 25 points. Use them when you're genuinely uncertain, not as a shortcut.</div>
+      </div>
+    </div>
+
+    <!-- CTA -->
+    <div class="obj-cta">
+      <button class="btn btn-primary" onclick="show('screen-brand-brief')">MEET YOUR BRAND →</button>
+      <p class="obj-cta-note">Next: the VELD brand story, your consumer, and your competitive position.</p>
+    </div>
+
+  </div>
+</div>
+
+<!-- ═══════ BRAND BRIEF ═══════ -->
+<div id="screen-brand-brief" class="screen">
+  <div class="brief-inner">
+
+    <div class="brief-section">
+      <div class="brief-rule"></div>
+      <div class="brief-section-lbl">The Origin</div>
+      <div class="brief-headline">BUILT FOR PEOPLE WHO<br>MOVE THROUGH HARD<br>PLACES QUIETLY.</div>
+      <p class="brief-prose"><strong>Erik and Maren Solberg</strong> spent a decade designing technical gear for European military contracts before relocating from Oslo to Bend, Oregon in 2009. They were tired of performance apparel that looked like it belonged in a lab — gear that communicated capability through logos and colorways instead of construction.</p>
+      <p class="brief-prose">VELD's first product was a single hardshell jacket — made in a 600 sq ft workshop, sold exclusively through three independent retailers in the Pacific Northwest. The name comes from the Afrikaans word for open wilderness. The philosophy hasn't moved since.</p>
+      <div class="brief-callout">
+        <p>"We don't make gear for the gram. We make gear for the moment after the photo — when it's cold, you're tired, and you need it to work."</p>
+        <span class="attr">— Erik Solberg, Co-Founder</span>
+      </div>
+    </div>
+
+    <div class="brief-section">
+      <div class="brief-rule"></div>
+      <div class="brief-section-lbl">Your Customer</div>
+      <div class="brief-headline">MEET CASEY.</div>
+      <p class="brief-prose">Casey is 34. Lives in Denver's RiNo neighborhood in a condo she bought two years ago. Works in UX design at a mid-size tech company. Runs trails before work three times a week. Has done two Himalayan treks. Owns a 2019 Subaru Outback and a 2023 gravel bike. Subscribes to <em>Monocle</em> and <em>Outside</em>.</p>
+      <div class="brief-stats">
+        <div class="brief-stat"><div class="brief-stat-val">34</div><div class="brief-stat-lbl">Age</div></div>
+        <div class="brief-stat"><div class="brief-stat-val">$130K</div><div class="brief-stat-lbl">HH Income</div></div>
+        <div class="brief-stat"><div class="brief-stat-val">$2,400</div><div class="brief-stat-lbl">Annual Gear</div></div>
+        <div class="brief-stat"><div class="brief-stat-val">6 wks</div><div class="brief-stat-lbl">Avg Research</div></div>
+      </div>
+      <p class="brief-prose">Shops at REI but feels slightly embarrassed about it — prefers independent gear shops when time allows. Reads spec sheets. Watches gear review YouTube. Asks questions in Reddit's r/ultralight. <strong>She can spot a fake technical story from 50 feet.</strong></p>
+      <div class="brief-callout-inline">
+        <p>Casey considers anything over $300 a <strong>"relationship purchase"</strong> — the brand has to earn it over time through consistent quality and honest positioning. She has never bought VELD on markdown. She doesn't need to.</p>
+      </div>
+    </div>
+
+    <div class="brief-section">
+      <div class="brief-rule"></div>
+      <div class="brief-section-lbl">Your Position</div>
+      <div class="brief-headline">WHERE VELD LIVES.</div>
+      <p class="brief-prose">In every scenario, you'll see two competitors — one above VELD, one below. That gap is intentional. VELD is not chasing the ultra-premium brand. VELD is not discounting to the heritage brand. VELD owns the space in between.</p>
+      <div class="brand-grid">
+        <div class="brand-chip premium">
+          <div class="brand-chip-name">APEX</div>
+          <div class="brand-chip-tier">Ultra-Premium</div>
+          <div class="brand-chip-arrow">↑ Above VELD</div>
+        </div>
+        <div class="brand-chip player">
+          <div class="brand-chip-name">VELD</div>
+          <div class="brand-chip-tier">YOUR BRAND</div>
+          <div class="brand-chip-tier">Premium Technical</div>
+        </div>
+        <div class="brand-chip accessible">
+          <div class="brand-chip-name">RIDGE</div>
+          <div class="brand-chip-tier">Premium Heritage</div>
+          <div class="brand-chip-arrow">↓ Below VELD</div>
+        </div>
+      </div>
+      <p class="brief-prose"><strong>Distribution:</strong> Specialty outdoor independents (primary channel). VELD.com direct — ~30% of revenue, growing. Select REI doors, 20 locations, curated placement only. <strong>Never:</strong> TJ Maxx, Amazon, wholesale clubs. The channel is the message.</p>
+      <ul class="brief-principles">
+        <li>Premium technical. Not ultra-premium theatre.</li>
+        <li>Performance first. Aesthetics follow.</li>
+        <li>Never discount the story.</li>
+      </ul>
+    </div>
+
+    <div class="brief-cta">
+      <p class="eyebrow accent">You know your brand. You know your customer.</p>
+      <button class="btn btn-primary" onclick="showRoundIntro(1)">BEGIN SEASON →</button>
+      <p class="brief-cta-note">You can scroll back up to review this brief at any time between scenarios.</p>
+    </div>
+
+  </div>
+</div>
+
+<!-- ═══════ ROUND INTRO ═══════ -->
+<div id="screen-round-intro" class="screen">
+  <span class="eyebrow accent" id="ri-eyebrow">Round 1 of 3</span>
+  <div class="round-num-display" id="ri-number">01</div>
+  <div class="round-name-display" id="ri-name">BRAND INSTINCT</div>
+  <p class="round-desc-display" id="ri-desc">Two scenarios. Each one adds a new layer of information. Start with what you know about VELD.</p>
+  <button class="btn btn-primary" onclick="startRound()" style="margin-top:10px;">START ROUND</button>
+</div>
+
+<!-- ═══════ SCENARIO ═══════ -->
+<div id="screen-scenario" class="screen">
+  <div class="sc-header">
+    <div class="sc-header-left">
+      <span class="eyebrow" id="sc-round-label">Round 1 · Scenario 1 of 2</span>
+      <div class="sc-pips" id="sc-pips"></div>
+    </div>
+    <div class="sc-header-right">
+      <div class="mentor-on-badge" id="mentor-badge" style="display:none;">◈ MENTOR ON</div>
+      <div class="sc-score-box">
+        <div class="eyebrow">Score</div>
+        <div class="sc-score-val" id="live-score">0</div>
+      </div>
+    </div>
+  </div>
+  <div class="lens-bar">
+    <span class="lens-lbl" id="lens-lbl">BRAND INSTINCT</span>
+    <div class="lens-sep"></div>
+    <span class="lens-desc" id="lens-desc">No market data. Price based on who VELD is.</span>
+  </div>
+  <div class="sc-body" id="sc-body"></div>
+  <div class="sc-footer">
+    <div class="hint-row" id="hint-row"></div>
+    <button class="btn btn-primary" id="submit-btn" onclick="submitDecision()">CONFIRM PRICE</button>
+  </div>
+</div>
+
+<!-- ═══════ FEEDBACK ═══════ -->
+<div id="screen-feedback" class="screen">
+  <div class="fb-inner">
+    <div class="result-banner great" id="result-banner">
+      <div class="result-lbl" id="result-lbl">STRONG CALL</div>
+      <div class="result-sub" id="result-sub"></div>
+    </div>
+    <div class="score-break">
+      <div class="score-metric-card"><div class="smc-name">Margin</div><div class="smc-val hi" id="smc-margin">0</div><div class="smc-max">/ 33</div></div>
+      <div class="score-metric-card"><div class="smc-name">Revenue</div><div class="smc-val hi" id="smc-revenue">0</div><div class="smc-max">/ 33</div></div>
+      <div class="score-metric-card"><div class="smc-name">Brand Equity</div><div class="smc-val hi" id="smc-brand">0</div><div class="smc-max">/ 34</div></div>
+    </div>
+    <div class="takeaway-box">
+      <div class="takeaway-lbl">▸ Key Takeaway</div>
+      <div class="takeaway-text" id="takeaway-text"></div>
+    </div>
+    <div class="ai-box">
+      <div class="ai-box-lbl">◈ Mentor Commentary <div class="ai-dots" id="ai-loading"><div class="ai-dot"></div><div class="ai-dot"></div><div class="ai-dot"></div></div></div>
+      <div class="ai-text" id="ai-text"></div>
+    </div>
+    <button class="btn btn-primary" id="next-btn" onclick="nextScenario()" style="align-self:flex-start;">NEXT →</button>
+  </div>
+</div>
+
+<!-- ═══════ ROUND SUMMARY ═══════ -->
+<div id="screen-round-summary" class="screen">
+  <span class="eyebrow accent" id="rs-eyebrow">Round 1 Complete</span>
+  <div style="font-family:var(--font-display);font-size:16px;letter-spacing:0.1em;color:var(--text-muted);" id="rs-name">BRAND INSTINCT</div>
+  <div>
+    <div class="eyebrow" style="margin-bottom:4px;">Round Score</div>
+    <div class="rs-total" id="rs-score">0</div>
+    <div class="eyebrow" style="margin-top:4px;">&nbsp;/ 200 pts</div>
+  </div>
+  <div class="rs-grid">
+    <div class="rs-cell"><div class="eyebrow" style="margin-bottom:6px;">Margin</div><div class="rs-cell-val" id="rs-margin">0</div></div>
+    <div class="rs-cell"><div class="eyebrow" style="margin-bottom:6px;">Revenue</div><div class="rs-cell-val" id="rs-revenue">0</div></div>
+    <div class="rs-cell"><div class="eyebrow" style="margin-bottom:6px;">Brand Equity</div><div class="rs-cell-val" id="rs-brand">0</div></div>
+  </div>
+  <p class="rs-msg" id="rs-msg"></p>
+  <button class="btn btn-primary" id="rs-proceed-btn">CONTINUE TO ROUND 2</button>
+</div>
+
+<!-- ═══════ FINAL ═══════ -->
+<div id="screen-final" class="screen">
+  <span class="eyebrow accent">Season Complete</span>
+  <div class="badge-display" id="final-badge">SENIOR ANALYST</div>
+  <div class="final-total" id="final-total">0</div>
+  <div class="final-max">/ 600 PTS TOTAL</div>
+  <div class="final-rds">
+    <div class="final-rd-cell"><div class="final-rd-lbl">Round 1</div><div class="final-rd-val" id="final-r1">0</div></div>
+    <div class="final-rd-cell"><div class="final-rd-lbl">Round 2</div><div class="final-rd-val" id="final-r2">0</div></div>
+    <div class="final-rd-cell"><div class="final-rd-lbl">Round 3</div><div class="final-rd-val" id="final-r3">0</div></div>
+  </div>
+  <div class="final-ai-box" id="final-ai-text">Generating season assessment...</div>
+  <button class="btn btn-primary" onclick="restartGame()">PLAY AGAIN</button>
+</div>
+
+<!-- ═══════ HINT OVERLAY ═══════ -->
+<div class="hint-overlay" id="hint-overlay">
+  <div class="hint-card">
+    <div class="hint-card-lbl">◈ Mentor Hint <div class="ai-dots" id="hint-loading"><div class="ai-dot"></div><div class="ai-dot"></div><div class="ai-dot"></div></div></div>
+    <div class="hint-card-text" id="hint-text"></div>
+    <button class="btn btn-secondary" onclick="closeHint()">GOT IT</button>
+  </div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════════════════
+// SCENARIO DATA
+// Two competitors per scenario:
+//   APEX  — ultra-premium (above VELD)
+//   RIDGE — premium heritage (below VELD / more accessible)
+// ═══════════════════════════════════════════════════════════════
+
+const SCENARIOS = {
+
+  // R1S1 — BRAND INSTINCT
+  // No cost, no competitors. Price purely from brand identity.
+  r1s1: {
+    id:'r1s1', round:1, type:'slider',
+    showCost:false, showCompetitors:false,
+    lens:{lbl:'BRAND INSTINCT', desc:'No cost. No competitors. Price this based entirely on who VELD is and who Casey is.'},
+    category:'Hardshell Jacket',
+    productName:'VoidShell Pro Jacket',
+    description:"VELD's first hardshell entry. No market data available. Price this based on the product story and your understanding of VELD's position.",
+    features:['3-layer Gore-Tex Pro membrane','Fully seam-sealed construction','Helmet-compatible StormHood','Two chest pockets + one internal','Underarm pit-zip ventilation','Reconfigurable powder skirt','560g / 19.8oz','100% recycled face fabric'],
+    cost:148, sliderMin:150, sliderMax:900, defaultPrice:380,
+    competitors:[],
+    zones:{tooLow:{max:349}, acceptLow:{min:350,max:449}, optimal:{min:450,max:599}, acceptHigh:{min:600,max:699}, tooHigh:{min:700}},
+    getMarginScore:(p)=>{ const m=(p-148)/p; if(m>=0.65&&m<=0.78)return 33; if(m>=0.55)return 22; if(m>0.78)return 18; return 8; },
+    getRevenueScore:(p)=>{ if(p>=450&&p<=599)return 33; if(p>=380&&p<450)return 20; if(p>599&&p<=699)return 22; return 8; },
+    getBrandScore:(p)=>{ if(p>=450&&p<=599)return 34; if(p>=350&&p<450)return 14; if(p>599&&p<=699)return 20; if(p>699)return 10; return 6; },
+    learning:(p)=>`Market reveal: RIDGE Summit Shell $549 · APEX ProShell GTX Pro $749.\n\nGore-Tex Pro commands a consumer price expectation of $450+. At $450–$599, VELD establishes hardshell credibility in the space below RIDGE — a smart entry position for a brand without established shell heritage. Pricing below $350 undercuts VELD's premium tier and leaves significant margin uncaptured. You achieved ${((p-148)/p*100).toFixed(1)}% gross margin at $${p}.`,
+    aiContext:(p)=>`A junior merchant at VELD (premium technical outdoor) priced a 3-layer Gore-Tex Pro hardshell (560g, seam-sealed, VELD's first hardshell) at $${p} with no competitor data shown. Post-reveal: RIDGE $549, APEX $749. Cost is $148.`
+  },
+
+  // R1S2 — MARKET CONTEXT
+  // Competitors revealed. Still no cost. Focus: competitive positioning.
+  r1s2: {
+    id:'r1s2', round:1, type:'slider',
+    showCost:false, showCompetitors:true,
+    lens:{lbl:'MARKET CONTEXT', desc:'Two competitors are now visible — one above, one below. Where does VELD belong between them?'},
+    category:'Technical Midlayer',
+    productName:'GridTech Midlayer',
+    description:'300-weight recycled fleece engineered for performance layering. Cost is not shown — focus on where VELD sits relative to the competitive set.',
+    features:['300-weight recycled polyester fleece','Underarm pit-zip ventilation','Packable to integrated chest pocket','Flatlock seams reduce bulk','Helmet-compatible standing collar'],
+    cost:58, sliderMin:60, sliderMax:360, defaultPrice:155,
+    competitors:[
+      {name:'APEX', product:'ThermaCore 300', price:329, tier:'above'},
+      {name:'RIDGE', product:'Classic 300 Fleece', price:179, tier:'below'}
+    ],
+    zones:{tooLow:{max:139}, acceptLow:{min:140,max:169}, optimal:{min:170,max:229}, acceptHigh:{min:230,max:269}, tooHigh:{min:270}},
+    getMarginScore:(p)=>{ const m=(p-58)/p; if(m>=0.65&&m<=0.78)return 33; if(m>=0.55)return 22; if(m>0.78)return 20; return 8; },
+    getRevenueScore:(p)=>{ if(p>=170&&p<=229)return 33; if(p>=140&&p<170)return 20; if(p>229&&p<=269)return 22; return 8; },
+    getBrandScore:(p)=>{ if(p>=170&&p<=229)return 34; if(p>=150&&p<170)return 20; if(p>229&&p<=260)return 22; return 6; },
+    learning:"VELD's technical differentiators — pit-zips, packability, flatlock seams — justify a meaningful premium over RIDGE at $179. At $170–$229, VELD creates a credible gap above the heritage tier and the VELD vs. RIDGE decision becomes a genuine value conversation at retail. That's exactly where you want to be.\n\nCost reveal: $58. At $179, gross margin is 68%. At $199, it's 71%.",
+    aiContext:(p)=>`A junior merchant at VELD priced a 300-weight recycled fleece midlayer (pit-zips, packable, flatlock seams) at $${p}. Two competitors shown: APEX $329 (ultra-premium), RIDGE $179 (premium heritage). Cost was hidden — this was a positioning exercise. Actual cost: $58. Achieved margin: ${((p-58)/p*100).toFixed(1)}%.`
+  },
+
+  // R2S1 — THE MATH (both paths share this scenario)
+  // Full picture: cost + competitors + product.
+  r2s1: {
+    id:'r2s1', round:2, type:'slider',
+    showCost:true, showCompetitors:true,
+    lens:{lbl:'THE MATH', desc:'Cost is visible now. Does your positioning instinct survive contact with the margin math?'},
+    category:'Trail Running Footwear',
+    productName:'TrailShield GTX',
+    description:'Waterproof trail runner built for technical terrain. Full picture — cost and competitive context both on the table.',
+    features:['Gore-Tex waterproof membrane','Vibram MegaGrip outsole','Recycled polyester upper','6.8oz / 193g (Men\'s US 9)','4mm lug depth, mixed terrain'],
+    cost:82, sliderMin:80, sliderMax:290, defaultPrice:175,
+    competitors:[
+      {name:'APEX', product:'Phantom GTX', price:229, tier:'above'},
+      {name:'RIDGE', product:'TerrainPro GTX', price:149, tier:'below'}
+    ],
+    zones:{tooLow:{max:148}, acceptLow:{min:149,max:172}, optimal:{min:173,max:215}, acceptHigh:{min:216,max:228}, tooHigh:{min:229}},
+    getMarginScore:(p)=>{ const m=(p-82)/p; if(m>=0.54&&m<=0.65)return 33; if(m>=0.45)return 20; if(m>0.65)return 22; return 8; },
+    getRevenueScore:(p)=>{ if(p>=173&&p<=215)return 33; if(p>=149&&p<=228)return 20; return 8; },
+    getBrandScore:(p)=>{ if(p>=173&&p<=215)return 34; if((p>=155&&p<173)||(p>215&&p<=224))return 22; if(p>=149&&p<155)return 14; if(p>224&&p<=228)return 18; return 6; },
+    learning:"At $173–$215, you achieve 53–62% gross margin while maintaining a credible gap above RIDGE and below APEX. Pricing at or below RIDGE's $149 collapses VELD into the heritage tier regardless of the product's technical story — the market reads price as a tier signal. Matching APEX at $229 requires APEX's brand equity, which VELD hasn't earned in footwear.",
+    aiContext:(p)=>`A junior merchant at VELD priced a Gore-Tex trail runner at $${p} with full cost and competitor data. APEX $229 (ultra-premium), RIDGE $149 (premium heritage). Cost is $82. Gross margin: ${((p-82)/p*100).toFixed(1)}%.`
+  },
+
+  // R2 EASY PATH (R1 < 50%)
+  r2s2e: {
+    id:'r2s2e', round:2, type:'slider',
+    showCost:true, showCompetitors:true,
+    lens:{lbl:'FULL PICTURE', desc:'All data available — cost, competitors, product. Apply everything from Round 1.'},
+    category:'Trail Accessories',
+    productName:'TrailKit Gaiters',
+    description:'Low-profile trail gaiters. Full data available — practice applying brand positioning and margin logic together.',
+    features:['4-way stretch technical fabric','Waterproof coating','Hook-and-loop front attachment','Low-profile silhouette, 2.8oz/pair','Compatible with all VELD trail shoes'],
+    cost:28, sliderMin:25, sliderMax:120, defaultPrice:52,
+    competitors:[
+      {name:'APEX', product:'MicroGaiter Pro', price:89, tier:'above'},
+      {name:'RIDGE', product:'Trail Gaiter', price:49, tier:'below'}
+    ],
+    zones:{tooLow:{max:48}, acceptLow:{min:49,max:58}, optimal:{min:59,max:78}, acceptHigh:{min:79,max:88}, tooHigh:{min:89}},
+    getMarginScore:(p)=>{ const m=(p-28)/p; if(m>=0.50&&m<=0.68)return 33; if(m>=0.35)return 18; return 8; },
+    getRevenueScore:(p)=>{ if(p>=59&&p<=78)return 33; if(p>=49&&p<59)return 20; if(p>78&&p<=88)return 24; return 8; },
+    getBrandScore:(p)=>{ if(p>=59&&p<=78)return 34; if((p>=50&&p<59)||(p>78&&p<=85))return 22; return 6; },
+    learning:"Accessories are where margin is made in a well-structured assortment. At $59–$78, VELD gaiters achieve 52–64% gross margin while sitting above RIDGE — exactly where the brand should be in the accessory tier. The gaiter price ladder reinforces VELD's technical positioning and encourages consumers to build a full VELD outfit.",
+    aiContext:(p)=>`A junior merchant at VELD priced trail gaiters (2.8oz, waterproof, 4-way stretch) at $${p}. APEX $89 (ultra-premium), RIDGE $49 (premium heritage). Cost is $28. Gross margin: ${((p-28)/p*100).toFixed(1)}%.`
+  },
+
+  // R2 HARD PATH (R1 >= 50%)
+  r2s2h: {
+    id:'r2s2h', round:2, type:'slider',
+    showCost:true, showCompetitors:true,
+    lens:{lbl:'NEW CATEGORY', desc:"VELD is entering equipment for the first time. Brand equity is category-specific — how does VELD's positioning translate without heritage?" },
+    category:'Technical Equipment',
+    productName:'Summit Carbon Poles',
+    description:"Carbon fiber trekking poles. VELD's first equipment entry. 15% lighter than RIDGE — but no established equipment credibility.",
+    features:['T700 carbon fiber shaft','3-section collapsible, 57–135cm','Cork/foam ergonomic grip','Flick-lock adjustment mechanism','115g per pole — 230g/pair','Carbide + rubber tip set included'],
+    cost:52, sliderMin:60, sliderMax:260, defaultPrice:139,
+    competitors:[
+      {name:'APEX', product:'Carbon Elite Poles', price:219, tier:'above'},
+      {name:'RIDGE', product:'Trail Pro Poles', price:129, tier:'below'}
+    ],
+    zones:{tooLow:{max:119}, acceptLow:{min:120,max:148}, optimal:{min:149,max:185}, acceptHigh:{min:186,max:204}, tooHigh:{min:205}},
+    getMarginScore:(p)=>{ const m=(p-52)/p; if(m>=0.60&&m<=0.72)return 33; if(m>=0.50)return 22; if(m>0.72)return 20; return 8; },
+    getRevenueScore:(p)=>{ if(p>=149&&p<=185)return 33; if(p>=130&&p<149)return 20; if(p>185&&p<=204)return 22; return 8; },
+    getBrandScore:(p)=>{ if(p>=149&&p<=185)return 34; if(p>=134&&p<149)return 22; if(p>185&&p<=200)return 22; if(p>200)return 14; return 6; },
+    learning:"VELD enters equipment without category heritage. At $149–$185, the weight advantage justifies a premium over RIDGE while acknowledging first-entry limitations. Pricing at APEX's $219 requires the kind of equipment credibility VELD hasn't built — brand equity doesn't transfer automatically from apparel to hard goods. The $149–$185 range builds the foundation first.",
+    aiContext:(p)=>`A junior merchant at VELD priced carbon trekking poles (115g/pole, first equipment entry, 15% lighter than RIDGE) at $${p}. APEX $219 (ultra-premium equipment), RIDGE $129 (premium heritage). Cost is $52. Gross margin: ${((p-52)/p*100).toFixed(1)}%.`
+  },
+
+  // R3 EASY PATH — Markdown Decision
+  r3s1e: {
+    id:'r3s1e', round:3, type:'elasticity',
+    lens:{lbl:'PRESSURE TEST', desc:"Season is in motion. Sell-through is behind. How do you respond without breaking what you've built?"},
+    category:'In-Season Decision',
+    productName:'TrailShield GTX — Week 8',
+    situation:"Week 8 of the season. TrailShield GTX is priced at $199. Sell-through sits at 28% against a 60% target. RIDGE is holding firm at their price. Your retail partners are requesting guidance. What's your move?",
+    options:[
+      {letter:'A', text:'Take a 25% markdown to $149 — move the units, clear the floor, match RIDGE.'},
+      {letter:'B', text:'Mark down 10% to $179 — test price sensitivity without signaling distress.'},
+      {letter:'C', text:'Hold at $199. Shift $30K of co-op marketing budget to paid search targeting trail runners.'},
+      {letter:'D', text:'Bundle TrailShield GTX + gaiters at $249 — adds $50 perceived value versus buying separately.'}
+    ],
+    optScore:{A:{m:4,r:8,b:4}, B:{m:22,r:28,b:26}, C:{m:30,r:22,b:34}, D:{m:28,r:30,b:28}},
+    learning:"A 25% markdown to $149 collapses VELD into RIDGE's tier and permanently anchors consumer price expectations. That's not a correction — it's a concession. A 10% markdown is surgical. Bundling adds perceived value without eroding unit price. Holding with marketing reallocation tests whether this is a visibility problem before assuming it's a price problem.",
+    aiContext:(c)=>`A junior merchant at VELD chose Option ${c} when TrailShield GTX ($199, cost $82) had 28% sell-through at week 8 vs 60% target. RIDGE holding at their price. A=25% markdown to $149, B=10% markdown to $179, C=hold and shift marketing, D=bundle at $249.`
+  },
+
+  // R3 HARD PATH — Competitive Response
+  r3s1h: {
+    id:'r3s1h', round:3, type:'elasticity',
+    lens:{lbl:'COMPETITIVE RESPONSE', desc:"A competitor just moved. The instinct is to react. The discipline is to decide whether you should."},
+    category:'Competitive Response',
+    productName:'GridTech Midlayer — Week 6',
+    situation:"Week 6. GridTech Midlayer at $209. Sell-through: 52% vs 65% target. Breaking: APEX ThermaCore 300 just dropped from $329 to $279 — a 15% promotional markdown. RIDGE Classic 300 is holding at $179. What do you do?",
+    options:[
+      {letter:'A', text:"Hold at $209 — APEX's promo is their problem. Your differentiation stands."},
+      {letter:'B', text:'Drop to $189 — a modest adjustment that creates a tighter gap against APEX on sale without following them down.'},
+      {letter:'C', text:'Drop to $179 to match RIDGE — protect sell-through at parity with the accessible tier.'},
+      {letter:'D', text:"Raise to $229 — APEX on sale at $279 makes $229 look like an accessible premium. Capture the moment."}
+    ],
+    optScore:{A:{m:30,r:22,b:34}, B:{m:26,r:30,b:28}, C:{m:12,r:18,b:8}, D:{m:33,r:10,b:18}},
+    learning:"52% sell-through at week 6 is behind target but not a crisis. APEX's sale at $279 actually helps VELD — consumers who can't stretch to APEX see VELD at $209 as a credible full-price premium alternative. Matching RIDGE at $179 surrenders VELD's tier positioning entirely and trains consumers to wait for price drops.",
+    aiContext:(c)=>`A junior merchant at VELD chose Option ${c} for GridTech Midlayer ($209, cost $58) at 52% sell-through when APEX dropped from $329 to $279. RIDGE holding at $179. A=Hold $209, B=Drop to $189, C=Match RIDGE $179, D=Raise to $229.`
+  },
+
+  // R3S2 — SYNTHESIS: Assortment Capsule
+  r3s2: {
+    id:'r3s2', round:3, type:'assortment',
+    lens:{lbl:'SYNTHESIS', desc:'Three products. One capsule. Make them ladder up to the hero line — without cannibalizing it.'},
+    category:'Opening Price Capsule',
+    productName:'Entry Line: 3-Product Capsule',
+    description:"Price this opening-price capsule as a system. These products recruit Casey's first VELD purchase — they must feel like VELD at an accessible entry, not a discount brand.",
+    assortProducts:[
+      {key:'shoe', name:'Trail Starter', type:'Trail Runner (Entry)', feat:'Synthetic upper, basic cushioning, rubber outsole, no waterproofing, 8.5oz', cost:46, min:40, max:200, def:89,
+        comps:[{name:'APEX',price:189,tier:'above'},{name:'RIDGE',price:109,tier:'below'}], zLow:84, zOpt:[99,129], zHigh:149},
+      {key:'vest', name:'GridLite Vest', type:'Midlayer Vest (Entry)', feat:'Fleece body, softshell side panels, two pockets, packable, 280g', cost:41, min:40, max:220, def:99,
+        comps:[{name:'APEX',price:219,tier:'above'},{name:'RIDGE',price:129,tier:'below'}], zLow:94, zOpt:[119,155], zHigh:175},
+      {key:'cap', name:'Summit Cap', type:'Trail Cap', feat:'Recycled ripstop, UPF 50+, low-profile, moisture-wicking sweatband, adjustable', cost:12, min:10, max:90, def:34,
+        comps:[{name:'APEX',price:59,tier:'above'},{name:'RIDGE',price:38,tier:'below'}], zLow:34, zOpt:[42,55], zHigh:65}
+    ],
+    getProdScore:(key,p)=>{
+      const z={shoe:{lo:84,opt:[99,129],hi:149,cost:46},vest:{lo:94,opt:[119,155],hi:175,cost:41},cap:{lo:34,opt:[42,55],hi:65,cost:12}};
+      const d=z[key]; const m=(p-d.cost)/p;
+      const mScore=m>=0.50&&m<=0.72?11:m>=0.40?7:3;
+      const rScore=p>=d.opt[0]&&p<=d.opt[1]?11:(p>=d.lo&&p<=d.hi)?7:3;
+      const bScore=p>=d.opt[0]&&p<=d.opt[1]?11:p<d.lo?3:p>d.hi?5:7;
+      return {m:mScore,r:rScore,b:bScore};
+    },
+    learning:"Opening-price products recruit new consumers into the VELD ecosystem — they need to feel like VELD, not like a separate value brand. Price them too low and the brand reads discount. Too high and the entry mission fails. Optimal range: Trail Starter $99–$129 (vs RIDGE $109), GridLite Vest $119–$155 (vs RIDGE $129), Summit Cap $42–$55 (vs RIDGE $38). The step-up to hero products should feel earned, not arbitrary.",
+    aiContext:(prices)=>`A junior merchant at VELD priced an opening-price capsule: Trail Starter shoe $${prices.shoe} (cost $46, APEX $189, RIDGE $109), GridLite Vest $${prices.vest} (cost $41, APEX $219, RIDGE $129), Summit Cap $${prices.cap} (cost $12, APEX $59, RIDGE $38).`
+  }
+};
+
+// ═══════════════════════════════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════════════════════════════
+
+let S = {
+  mentor:false, score:0,
+  roundScores:[0,0,0], roundM:[0,0,0], roundR:[0,0,0], roundB:[0,0,0],
+  round:1, scIdx:0, queue:[],
+  hintsUsed:0, decisions:[],
+  scenario:null, selectedPrice:0, selectedOption:null, assortPrices:{}
+};
+
+// ═══════════════════════════════════════════════════════════════
+// NAVIGATION
+// ═══════════════════════════════════════════════════════════════
+
+function show(id) {
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  setTimeout(()=>{ const el=document.getElementById(id); if(el) el.classList.add('active'); }, 40);
+}
+
+function toggleMentor() {
+  S.mentor = !S.mentor;
+  const t=document.getElementById('mentor-toggle'), l=document.getElementById('mentor-lbl');
+  if(S.mentor){ t.classList.add('on'); l.textContent='Mentor hints are ON. Each hint costs 25 points.'; l.style.color='var(--cool)'; }
+  else { t.classList.remove('on'); l.textContent='Enable hints during play — each one costs 25 points from your score.'; l.style.color=''; }
+}
+
+function startGame() {
+  S.queue = ['r1s1','r1s2'];
+  show('screen-objectives');
+}
+
+function showRoundIntro(round) {
+  const data = {
+    1:{ey:'Round 1 of 3',num:'01',name:'BRAND INSTINCT',desc:'Two scenarios. Each adds a new layer of information. Start with what you know about VELD.'},
+    2:{ey:'Round 2 of 3',num:'02',name:'THE MATH',desc:"Cost is on the table. Adaptive difficulty based on Round 1. Does your instinct survive the margin math?"},
+    3:{ey:'Round 3 of 3',num:'03',name:'FULL SEASON PUSH',desc:'In-season pressure, competitive response, and an assortment architecture challenge. The decisions that define a season.'}
+  };
+  const d=data[round]; S.round=round;
+  document.getElementById('ri-eyebrow').textContent=d.ey;
+  document.getElementById('ri-number').textContent=d.num;
+  document.getElementById('ri-name').textContent=d.name;
+  document.getElementById('ri-desc').textContent=d.desc;
+  show('screen-round-intro');
+}
+
+function startRound() { S.scIdx=0; loadScenario(); }
+
+function loadScenario() {
+  const key=S.queue[S.scIdx];
+  S.scenario=SCENARIOS[key];
+  S.selectedPrice=S.scenario.defaultPrice||0;
+  S.selectedOption=null; S.assortPrices={};
+  renderScenario();
+  show('screen-scenario');
+}
+
+// ═══════════════════════════════════════════════════════════════
+// RENDERING
+// ═══════════════════════════════════════════════════════════════
+
+function renderScenario() {
+  const sc=S.scenario;
+  const total=S.queue.length, cur=S.scIdx+1;
+  document.getElementById('sc-round-label').textContent=`Round ${sc.round} · Scenario ${cur} of ${total}`;
+  document.getElementById('live-score').textContent=S.score;
+  document.getElementById('mentor-badge').style.display=S.mentor?'flex':'none';
+  document.getElementById('lens-lbl').textContent=sc.lens.lbl;
+  document.getElementById('lens-desc').textContent=sc.lens.desc;
+
+  const pipsEl=document.getElementById('sc-pips');
+  pipsEl.innerHTML='';
+  for(let i=0;i<total;i++){
+    const p=document.createElement('div');
+    p.className='sc-pip'+(i<S.scIdx?' done':i===S.scIdx?' current':'');
+    pipsEl.appendChild(p);
+  }
+
+  document.getElementById('hint-row').innerHTML=S.mentor
+    ?`<button class="btn-hint" id="hint-btn" onclick="requestHint()">◈ GET HINT</button><span class="hint-cost-note">−25 pts</span>`:'';
+
+  const submitBtn=document.getElementById('submit-btn');
+  submitBtn.textContent=sc.type==='elasticity'?'CONFIRM DECISION':sc.type==='assortment'?'CONFIRM PRICES':'CONFIRM PRICE';
+
+  const body=document.getElementById('sc-body');
+  body.className='sc-body';
+  if(sc.type==='slider') renderSlider(sc,body);
+  else if(sc.type==='elasticity'){ body.classList.add('full-width'); renderElasticity(sc,body); }
+  else if(sc.type==='assortment'){ body.classList.add('full-width'); renderAssortment(sc,body); }
+}
+
+function renderSlider(sc, body) {
+  const showCost=sc.showCost!==false;
+  const showComps=sc.showCompetitors!==false && sc.competitors.length>0;
+  const initM=((sc.defaultPrice-sc.cost)/sc.defaultPrice*100).toFixed(1);
+
+  // Right panel top: market map or brand context reminder
+  let rightTopHtml='';
+  if(showComps) {
+    const compMax=Math.max(...sc.competitors.map(c=>c.price));
+    const rows=sc.competitors.map(c=>{
+      const isAbove=c.tier==='above';
+      const bw=Math.min(100,(c.price/compMax)*100);
+      return `<div class="comp-row">
+        <span class="comp-tier-tag ${isAbove?'above':'below'}">${isAbove?'ABOVE VELD':'BELOW VELD'}</span>
+        <div class="comp-brand">${c.name}</div>
+        <div class="comp-product">${c.product}</div>
+        <div class="comp-bar-wrap"><div class="comp-bar-fill ${isAbove?'above':'below'}" style="width:${bw}%"></div></div>
+        <div class="comp-price-val">$${c.price}</div>
+      </div>`;
+    }).join('');
+    rightTopHtml=`<div class="market-map"><div class="market-map-title">Competitive Guardrails</div>${rows}</div>`;
+  } else {
+    rightTopHtml=`<div class="brand-context-card">
+      <div class="brand-context-title">◎ Who You're Pricing For</div>
+      <div class="brand-context-item"><strong>VELD</strong> — Premium Technical Outdoor. Between APEX (ultra-premium) and RIDGE (heritage).</div>
+      <div class="brand-context-item">Casey, 34 · Denver · UX Designer · $2,400/yr gear spend</div>
+      <div class="brand-context-item">Researches 6 weeks before purchase. Buys at specialty independents.</div>
+      <div class="brand-context-item">Considers $300+ a <strong>"relationship purchase"</strong> — brand has to earn it.</div>
+      <div class="brand-context-item"><strong>Has never bought VELD on markdown.</strong> She doesn't need to.</div>
+    </div>`;
+  }
+
+  // Marker ticks for competitors
+  let markersHtml='';
+  if(showComps) {
+    sc.competitors.forEach(c=>{
+      const pct=((c.price-sc.sliderMin)/(sc.sliderMax-sc.sliderMin))*100;
+      if(pct>3&&pct<97) markersHtml+=`<div class="marker-item" style="left:${pct}%"><div class="marker-lbl">${c.name} $${c.price}</div><div class="marker-tick"></div></div>`;
+    });
+  }
+
+  const costHtml=showCost
+    ?`<div class="cost-row"><span class="cost-lbl">VELD LANDED COST</span><span class="cost-val">$${sc.cost}</span></div>`:'';
+  const marginHtml=showCost
+    ?`<div class="margin-lbl">Gross Margin: <span id="margin-val">${initM}%</span></div>`
+    :`<div style="font-family:var(--font-mono);font-size:10px;color:var(--text-dim);margin-top:3px;">Cost not shown this round</div>`;
+
+  body.innerHTML=`
+    <div class="prod-panel">
+      <span class="cat-badge">◎ ${sc.category}</span>
+      <div><div class="prod-brand">VELD</div><div class="prod-name">${sc.productName}</div></div>
+      <p class="prod-desc">${sc.description}</p>
+      <ul class="feat-list">${sc.features.map(f=>`<li>${f}</li>`).join('')}</ul>
+      ${costHtml}
+    </div>
+    <div class="price-panel">
+      ${rightTopHtml}
+      <div class="slider-section">
+        <div class="price-display-center">
+          <div class="your-price-lbl">YOUR PRICE</div>
+          <div class="your-price-val" id="price-val">$${sc.defaultPrice}</div>
+          ${marginHtml}
+        </div>
+        <div class="slider-wrap">
+          <div class="markers-row">${markersHtml}</div>
+          <input type="range" id="price-slider" min="${sc.sliderMin}" max="${sc.sliderMax}" value="${sc.defaultPrice}" step="1" oninput="updatePrice(this.value)">
+          <div class="slider-bounds"><span class="slider-bound">$${sc.sliderMin}</span><span class="slider-bound">$${sc.sliderMax}</span></div>
+        </div>
+      </div>
+    </div>`;
+
+  updateSliderUI(sc.defaultPrice, sc);
+}
+
+function updatePrice(val) {
+  S.selectedPrice = parseInt(val);
+  updateSliderUI(S.selectedPrice, S.scenario);
+}
+
+function updateSliderUI(price, sc) {
+  const pv=document.getElementById('price-val');
+  const mv=document.getElementById('margin-val');
+  const sl=document.getElementById('price-slider');
+  if(!sl) return;
+
+  // Update displayed price number
+  if(pv) pv.textContent='$'+price;
+
+  // Update margin if cost is visible
+  if(mv && sc.showCost!==false) {
+    mv.textContent=((price-sc.cost)/price*100).toFixed(1)+'%';
+  }
+
+  // Zone color
+  const z=sc.zones;
+  let zone='optimal';
+  if(z.tooLow&&price<=z.tooLow.max) zone='tooLow';
+  else if(z.acceptLow&&price>=z.acceptLow.min&&price<=z.acceptLow.max) zone='acceptLow';
+  else if(z.optimal&&price>=z.optimal.min&&price<=z.optimal.max) zone='optimal';
+  else if(z.acceptHigh&&price>=z.acceptHigh.min&&price<=z.acceptHigh.max) zone='acceptHigh';
+  else if(z.tooHigh&&price>=z.tooHigh.min) zone='tooHigh';
+
+  const colors={tooLow:'var(--danger)',acceptLow:'var(--warning)',optimal:'var(--success)',acceptHigh:'var(--warning)',tooHigh:'var(--danger)'};
+  const c=colors[zone];
+  const pct=((price-sc.sliderMin)/(sc.sliderMax-sc.sliderMin))*100;
+  sl.style.background=`linear-gradient(to right,${c} ${pct}%,var(--bg-card) ${pct}%)`;
+  if(pv) pv.style.color=c;
+  S.selectedPrice=price;
+}
+
+function renderElasticity(sc, body) {
+  body.innerHTML=`<div class="elast-wrap">
+    <div>
+      <span class="cat-badge">◎ ${sc.category}</span>
+      <div class="prod-brand" style="margin-top:8px;">VELD</div>
+      <div class="prod-name" style="font-size:22px;margin-top:2px;">${sc.productName}</div>
+    </div>
+    <div class="situation-box">
+      <div class="situation-lbl">Situation</div>
+      <p class="situation-text">${sc.situation}</p>
+    </div>
+    <div>
+      <p class="eyebrow" style="margin-bottom:9px;">Your Options</p>
+      <div class="options-list">
+        ${sc.options.map(o=>`<div class="option-item" id="opt-${o.letter}" onclick="selectOption('${o.letter}')"><div class="opt-letter">${o.letter}</div><div class="opt-text">${o.text}</div></div>`).join('')}
+      </div>
+    </div>
+  </div>`;
+}
+
+function selectOption(letter) {
+  S.selectedOption=letter;
+  document.querySelectorAll('.option-item').forEach(el=>el.classList.remove('selected'));
+  const t=document.getElementById('opt-'+letter);
+  if(t) t.classList.add('selected');
+}
+
+function renderAssortment(sc, body) {
+  sc.assortProducts.forEach(p=>{ S.assortPrices[p.key]=p.def; });
+  const items=sc.assortProducts.map(p=>{
+    const initM=((p.def-p.cost)/p.def*100).toFixed(1);
+    const compsStr=p.comps.map(c=>`${c.name} (${c.tier==='above'?'↑':'↓'}) $${c.price}`).join(' · ');
+    return `<div class="assort-item">
+      <div class="assort-item-top">
+        <div><div class="assort-name">${p.name}</div><div class="assort-type">${p.type}</div></div>
+        <div style="text-align:right;">
+          <div class="assort-price-display" id="ap-${p.key}">$${p.def}</div>
+          <div class="assort-margin-display">GM: <span id="am-${p.key}">${initM}%</span></div>
+        </div>
+      </div>
+      <div class="assort-feat">${p.feat}</div>
+      <div class="assort-comps">COST: $${p.cost} · MARKET: ${compsStr}</div>
+      <input type="range" min="${p.min}" max="${p.max}" value="${p.def}" step="1"
+        style="width:100%;height:4px;accent-color:var(--accent);"
+        oninput="updateAssort('${p.key}',this.value,${p.cost})">
+      <div style="display:flex;justify-content:space-between;margin-top:4px;">
+        <span style="font-family:var(--font-mono);font-size:10px;color:var(--text-dim);">$${p.min}</span>
+        <span style="font-family:var(--font-mono);font-size:10px;color:var(--text-dim);">$${p.max}</span>
+      </div>
+    </div>`;
+  }).join('');
+  body.innerHTML=`<div class="assort-wrap">
+    <div>
+      <span class="cat-badge">◎ ${sc.category}</span>
+      <div class="prod-brand" style="margin-top:8px;">VELD</div>
+      <div class="prod-name" style="font-size:20px;margin-top:2px;">${sc.productName}</div>
+      <p class="prod-desc" style="margin-top:6px;">${sc.description}</p>
+    </div>
+    ${items}
+  </div>`;
+}
+
+function updateAssort(key,val,cost) {
+  val=parseInt(val);
+  S.assortPrices[key]=val;
+  document.getElementById(`ap-${key}`).textContent='$'+val;
+  document.getElementById(`am-${key}`).textContent=((val-cost)/val*100).toFixed(1)+'%';
+}
+
+// ═══════════════════════════════════════════════════════════════
+// DECISION & SCORING
+// ═══════════════════════════════════════════════════════════════
+
+function submitDecision() {
+  const sc=S.scenario;
+  if(sc.type==='elasticity'&&!S.selectedOption) return;
+
+  let mScore,rScore,bScore,aiCtx;
+
+  if(sc.type==='slider') {
+    const p=S.selectedPrice;
+    mScore=sc.getMarginScore(p); rScore=sc.getRevenueScore(p); bScore=sc.getBrandScore(p);
+    aiCtx=sc.aiContext(p);
+  } else if(sc.type==='elasticity') {
+    const s=sc.optScore[S.selectedOption];
+    mScore=s.m; rScore=s.r; bScore=s.b;
+    aiCtx=sc.aiContext(S.selectedOption);
+  } else {
+    let tm=0,tr=0,tb=0;
+    sc.assortProducts.forEach(p=>{ const s=sc.getProdScore(p.key,S.assortPrices[p.key]); tm+=s.m; tr+=s.r; tb+=s.b; });
+    mScore=tm; rScore=tr; bScore=tb;
+    aiCtx=sc.aiContext(S.assortPrices);
+  }
+
+  const total=mScore+rScore+bScore;
+  const level=total>=80?'great':total>=55?'good':'miss';
+
+  S.score+=total;
+  const ri=sc.round-1;
+  S.roundScores[ri]+=total; S.roundM[ri]+=mScore; S.roundR[ri]+=rScore; S.roundB[ri]+=bScore;
+  S.decisions.push({id:sc.id,round:sc.round,total,m:mScore,r:rScore,b:bScore});
+
+  // Set full queue after R1S2
+  if(sc.id==='r1s2') {
+    const r1Pct=S.roundScores[0]/200;
+    if(r1Pct<0.50) S.queue=['r1s1','r1s2','r2s1','r2s2e','r3s1e','r3s2'];
+    else S.queue=['r1s1','r1s2','r2s1','r2s2h','r3s1h','r3s2'];
+  }
+
+  showFeedback(sc,level,mScore,rScore,bScore,total,aiCtx);
+}
+
+function showFeedback(sc,level,mScore,rScore,bScore,total,aiCtx) {
+  document.getElementById('result-banner').className=`result-banner ${level}`;
+  document.getElementById('result-lbl').textContent={great:'STRONG CALL',good:'SOLID MOVE',miss:'LEARNING MOMENT'}[level];
+
+  let sub='';
+  if(sc.type==='slider') {
+    const gm=((S.selectedPrice-sc.cost)/S.selectedPrice*100).toFixed(1);
+    sub=`You priced at $${S.selectedPrice}${sc.showCost!==false?' · '+gm+'% gross margin':''}`;
+  } else if(sc.type==='elasticity') {
+    sub=`You chose Option ${S.selectedOption}`;
+  } else {
+    sub=Object.entries(S.assortPrices).map(([k,v])=>`${k}: $${v}`).join(' · ');
+  }
+  document.getElementById('result-sub').textContent=sub;
+
+  const cls=(s,mx)=>s/mx>=0.8?'hi':s/mx>=0.55?'mid':'lo';
+  document.getElementById('smc-margin').textContent=mScore;
+  document.getElementById('smc-margin').className=`smc-val ${cls(mScore,33)}`;
+  document.getElementById('smc-revenue').textContent=rScore;
+  document.getElementById('smc-revenue').className=`smc-val ${cls(rScore,33)}`;
+  document.getElementById('smc-brand').textContent=bScore;
+  document.getElementById('smc-brand').className=`smc-val ${cls(bScore,34)}`;
+
+  const lp=typeof sc.learning==='function'?sc.learning(S.selectedPrice):sc.learning;
+  document.getElementById('takeaway-text').textContent=lp;
+
+  const aiText=document.getElementById('ai-text'), aiLoad=document.getElementById('ai-loading');
+  aiText.textContent=''; aiLoad.style.display='flex';
+
+  const isLast=S.scIdx>=S.queue.length-1;
+  const nextSc=!isLast?SCENARIOS[S.queue[S.scIdx+1]]:null;
+  const endRound=!nextSc||nextSc.round>sc.round;
+  document.getElementById('next-btn').textContent=isLast?'VIEW FINAL RESULTS →':endRound?'ROUND SUMMARY →':'NEXT SCENARIO →';
+
+  show('screen-feedback');
+  fetchCommentary(aiCtx, total, sc);
+}
+
+async function fetchCommentary(context, total, sc) {
+  const el=document.getElementById('ai-text'), ld=document.getElementById('ai-loading');
+  try {
+    const resp=await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({
+        model:'claude-sonnet-4-20250514', max_tokens:200,
+        system:'You are a senior merchant at VELD, a premium technical outdoor brand. Give 2–3 sentences of specific, insightful pricing feedback referencing the actual numbers. Sound like a direct mentor — honest but not harsh. Never say "great" or "excellent".',
+        messages:[{role:'user',content:`${context} Score: ${total}/100. Lens: "${sc.lens.lbl}" (${sc.lens.desc}). Give 2–3 sentences of specific mentor feedback on this pricing decision.`}]
+      })
+    });
+    const data=await resp.json();
+    ld.style.display='none';
+    el.textContent=data.content?.[0]?.text||'Review the key takeaway above for guidance.';
+  } catch { ld.style.display='none'; el.textContent='Mentor analysis unavailable. Review the key takeaway above.'; }
+}
+
+// ═══════════════════════════════════════════════════════════════
+// HINTS
+// ═══════════════════════════════════════════════════════════════
+
+async function requestHint() {
+  const overlay=document.getElementById('hint-overlay');
+  const hText=document.getElementById('hint-text'), hLoad=document.getElementById('hint-loading');
+  hText.textContent=''; hLoad.style.display='flex'; overlay.classList.add('visible');
+  S.score=Math.max(0,S.score-25); S.hintsUsed++;
+  document.getElementById('live-score').textContent=S.score;
+  const btn=document.getElementById('hint-btn');
+  if(btn){ btn.disabled=true; btn.textContent='◈ HINT USED (−25)'; }
+
+  const sc=S.scenario;
+  let ctx=sc.type==='slider'
+    ?`Pricing decision: ${sc.productName} (${sc.category}). Competitors: ${sc.competitors.map(c=>c.name+' $'+c.price+'('+c.tier+')').join(', ')||'none shown'}. Give a 2-sentence hint about VELD's tier positioning — no exact number.`
+    :sc.type==='elasticity'
+    ?`${sc.situation} Give a 2-sentence hint about markdown strategy and brand equity — no answer.`
+    :'Pricing an opening-price capsule for VELD. 2 sentences about how entry products should ladder to hero products.';
+  ctx+=` VELD context: premium technical outdoor brand, consumer is Casey (34, Denver, $130K income, $2,400/yr gear, never buys on markdown, shops at specialty independents).`;
+
+  try {
+    const resp=await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({
+        model:'claude-sonnet-4-20250514', max_tokens:120,
+        system:'You are a senior VELD merchant mentor. Give directional pricing hints in 2 sentences max. Never reveal the exact price or answer.',
+        messages:[{role:'user',content:ctx}]
+      })
+    });
+    const data=await resp.json();
+    hLoad.style.display='none';
+    hText.textContent=data.content?.[0]?.text||"Think about where VELD sits between its two competitors and what Casey would expect to pay.";
+  } catch { hLoad.style.display='none'; hText.textContent="Think about where VELD sits between its two competitors and what Casey would expect to pay."; }
+}
+
+function closeHint() { document.getElementById('hint-overlay').classList.remove('visible'); }
+
+// ═══════════════════════════════════════════════════════════════
+// FLOW
+// ═══════════════════════════════════════════════════════════════
+
+function nextScenario() {
+  S.scIdx++;
+  if(S.scIdx>=S.queue.length){ showFinal(); return; }
+  const next=SCENARIOS[S.queue[S.scIdx]], prev=S.scenario;
+  if(next.round>prev.round) showRoundSummary(prev.round);
+  else loadScenario();
+}
+
+function showRoundSummary(r) {
+  const names=['BRAND INSTINCT','THE MATH','FULL SEASON PUSH'];
+  document.getElementById('rs-eyebrow').textContent=`Round ${r} Complete`;
+  document.getElementById('rs-name').textContent=names[r-1];
+  document.getElementById('rs-score').textContent=S.roundScores[r-1];
+  document.getElementById('rs-margin').textContent=S.roundM[r-1];
+  document.getElementById('rs-revenue').textContent=S.roundR[r-1];
+  document.getElementById('rs-brand').textContent=S.roundB[r-1];
+
+  const pct=S.roundScores[r-1]/200;
+  const msgs={
+    1:pct>=0.75?'Strong instincts. Round 2 adds cost to the picture.':pct>=0.5?'Solid positioning sense. Round 2 tests the margin math.':'Room to grow. Round 2 reinforces the core concepts.',
+    2:pct>=0.75?'Consistent performance. Final round tests your full range.':'Keep building. Round 3 brings all variables together.',
+    3:'Full season complete.'
+  };
+  document.getElementById('rs-msg').textContent=msgs[r]||'';
+
+  const btn=document.getElementById('rs-proceed-btn');
+  btn.textContent=`CONTINUE TO ROUND ${r+1}`;
+  btn.onclick=()=>showRoundIntro(r+1);
+  show('screen-round-summary');
+}
+
+function showFinal() {
+  const total=S.score, pct=total/600;
+  const badge=pct>=0.90?'MASTER MERCHANT':pct>=0.78?'SENIOR ANALYST':pct>=0.62?'MARKET READY':pct>=0.45?'DEVELOPING EYE':'KEEP LEARNING';
+  document.getElementById('final-badge').textContent=badge;
+  animNum('final-total',0,total,1200);
+  animNum('final-r1',0,S.roundScores[0],900);
+  animNum('final-r2',0,S.roundScores[1],900);
+  animNum('final-r3',0,S.roundScores[2],900);
+  document.getElementById('final-ai-text').textContent='Generating season assessment...';
+  show('screen-final');
+  fetchFinalAssessment(badge,total);
+}
+
+async function fetchFinalAssessment(badge,total) {
+  const el=document.getElementById('final-ai-text');
+  const dec=S.decisions.map(d=>`${d.id}:${d.total}/100`).join(', ');
+  try {
+    const resp=await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({
+        model:'claude-sonnet-4-20250514', max_tokens:180,
+        system:'You are a senior merchant at VELD giving a season-end performance review to a junior merchant. Be direct, honest, developmental. 3 sentences max.',
+        messages:[{role:'user',content:`Junior merchant scored ${total}/600 (${(total/600*100).toFixed(0)}%), earned badge: ${badge}. Decision trail: ${dec}. Write a 3-sentence review naming their strongest dimension and one key area to develop.`}]
+      })
+    });
+    const data=await resp.json();
+    el.textContent=data.content?.[0]?.text||`Season complete with ${total}/600. Review each scenario's takeaways to keep building.`;
+  } catch { el.textContent=`Season complete — ${total}/600. Review the key takeaways from each scenario to continue building your pricing instincts.`; }
+}
+
+function animNum(id,from,to,dur) {
+  const el=document.getElementById(id); if(!el) return;
+  const start=performance.now();
+  const step=now=>{ const p=Math.min((now-start)/dur,1),e=1-Math.pow(1-p,3); el.textContent=Math.round(from+(to-from)*e); if(p<1)requestAnimationFrame(step); };
+  requestAnimationFrame(step);
+}
+
+function restartGame() {
+  S={mentor:false,score:0,roundScores:[0,0,0],roundM:[0,0,0],roundR:[0,0,0],roundB:[0,0,0],round:1,scIdx:0,queue:[],hintsUsed:0,decisions:[],scenario:null,selectedPrice:0,selectedOption:null,assortPrices:{}};
+  document.getElementById('mentor-toggle').classList.remove('on');
+  document.getElementById('mentor-lbl').textContent='Enable hints during play — each one costs 25 points from your score.';
+  document.getElementById('mentor-lbl').style.color='';
+  show('screen-splash');
+}
+</script>
+</body>
+</html>
